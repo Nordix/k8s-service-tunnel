@@ -2,11 +2,10 @@
 ##
 ## service-tunnel.sh --
 ##   Functions for a K8s service tunnel. Service tunnel is a tunnel,
-##   for instance vxlan, setup from an outside machine to a POD via a
-##   K8s UDP service.
+##   setup from an outside machine to a POD via a K8s UDP service.
 ##
 ##   Env:
-##     TUNNEL_TYPE   - "vxlan"
+##     TUNNEL_TYPE   - Only "vxlan" supported
 ##     TUNNEL_DEV    - Tunnel device
 ##     TUNNEL_MASTER - Tunnel master device
 ##     TUNNEL_PEER   - Ip address of the remote side
@@ -66,7 +65,7 @@ cmd_env() {
 	params="type|dev|master|peer|id|dport|sport|ipv4|ipv6"
 	initvar type vxlan
 	initvar dev vxlan0
-	initvar master eth0
+	initvar master
 	initvar peer
 	initvar id 333
 	initvar dport 5533
@@ -84,6 +83,7 @@ cmd_env() {
 cmd_init() {
 	log "Container init"
 	cmd_env
+	test -n "$__master" || __master=eth0
 	set | grep -E "^__($params).*=" | sort
 	cmd_tunnel
 	tail -f /dev/null
@@ -139,8 +139,13 @@ cmd_vxlan() {
 	log "Setup a VXLAN tunnel to [$__peer]"
 	test -n "$__peer" || die "No peer address"
 	local sport1=$((__sport + 1))
-	ip link add $__dev type vxlan id $__id dev $__master remote $__peer \
-		dstport $__dport srcport $__sport $sport1
+	if test -n "$__master"; then
+		ip link add $__dev type vxlan id $__id dev $__master remote $__peer \
+			dstport $__dport srcport $__sport $sport1
+	else
+		ip link add $__dev type vxlan id $__id remote $__peer \
+			dstport $__dport srcport $__sport $sport1
+	fi
 }
 
 ##
