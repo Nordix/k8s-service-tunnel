@@ -34,50 +34,6 @@ OSes.
 
 
 
-## Test with KinD
-
-In [KinD](https://kind.sigs.k8s.io/) we have no NAT-box but you must
-get the loadBalancerIP assigned and reachable. The KinD docs describes
-[how to use metallb](https://kind.sigs.k8s.io/docs/user/loadbalancer/).
-How to start KinD and assign the loadBalancerIP is out of scope for
-this document.
-
-The local address on the kind-net is what the POD must use as "remote"
-address for the tunnel. This is configured in
-[service-tunnel.yaml](service-tunnel.yaml). Replace the "__TUNNEL_PEER__"
-string with the local address and deploy:
-
-```
-# Your host address on the kind-network (your setup may differ);
-hostip=$(docker inspect kind-control-plane | jq -r '.[].NetworkSettings.Networks.kind.Gateway')
-sed -e "s,__TUNNEL_PEER__,$hostip," < service-tunnel.yaml > /tmp/service-tunnel.yaml
-kubectl apply -f /tmp/service-tunnel.yaml
-```
-
-Setup the tunnel interface on your computer using the script and
-assign addresses:
-```
-kubectl get svc vxlan-tunnel    # Get the external IP
-remote=<external ip from above>
-sudo ./image/service-tunnel.sh vxlan --peer=$remote
-sudo ip link set up dev vxlan0       # Now UDP packets are sent to the service!
-sudo ip addr add 10.30.30.2/30 dev vxlan0
-sudo ip -6 addr add fd00:3030::2/126 dev vxlan0
-```
-
-Setup is ready. Test connectivity:
-```
-ping 10.30.30.1
-ping fd00:3030::1
-```
-
-Clean-up:
-```
-kind delete cluster
-sudo ip link del vxlan0
-```
-
-
 ## Test in public cloud
 
 Describes howto setup a service tunnel on a public cloud from your
@@ -125,6 +81,50 @@ ping fd00:3030::1
 Clean-up:
 ```
 kubectl delete -f /tmp/service-tunnel.yaml
+sudo ip link del vxlan0
+```
+
+
+## Test with KinD
+
+In [KinD](https://kind.sigs.k8s.io/) we have no NAT-box but you must
+get the loadBalancerIP assigned and reachable. The KinD docs describes
+[how to use metallb](https://kind.sigs.k8s.io/docs/user/loadbalancer/).
+How to start KinD and assign the loadBalancerIP is out of scope for
+this document.
+
+The local address on the kind-net is what the POD must use as "remote"
+address for the tunnel. This is configured in
+[service-tunnel.yaml](service-tunnel.yaml). Replace the `__TUNNEL_PEER__`
+string with the local address and deploy:
+
+```
+# Your host address on the kind-network (your setup may differ);
+hostip=$(docker inspect kind-control-plane | jq -r '.[].NetworkSettings.Networks.kind.Gateway')
+sed -e "s,__TUNNEL_PEER__,$hostip," < service-tunnel.yaml > /tmp/service-tunnel.yaml
+kubectl apply -f /tmp/service-tunnel.yaml
+```
+
+Setup the tunnel interface on your computer using the script and
+assign addresses:
+```
+kubectl get svc vxlan-tunnel    # Get the external IP
+remote=<external ip from above>
+sudo ./image/service-tunnel.sh vxlan --peer=$remote
+sudo ip link set up dev vxlan0       # Now UDP packets are sent to the service!
+sudo ip addr add 10.30.30.2/30 dev vxlan0
+sudo ip -6 addr add fd00:3030::2/126 dev vxlan0
+```
+
+Setup is ready. Test connectivity:
+```
+ping 10.30.30.1
+ping fd00:3030::1
+```
+
+Clean-up:
+```
+kind delete cluster
 sudo ip link del vxlan0
 ```
 
