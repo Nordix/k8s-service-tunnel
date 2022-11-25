@@ -149,14 +149,18 @@ cmd_vxlan() {
 }
 
 ##
-# Get the command
-if test -n "$TUNNEL_FUNCTION"; then
+# Get the command;
+#  1 - From the command line
+#  2 - From the $TUNNEL_FUNCTION variable
+#  3 - Assume "init" for PID==1
+#  4 - Print help
+if test -n "$1"; then
+	cmd=$1
+	shift
+elif test -n "$TUNNEL_FUNCTION"; then
 	cmd=$TUNNEL_FUNCTION
 elif test $$ -eq 1; then
 	cmd=init
-elif test -n "$1"; then
-	cmd=$1
-	shift
 else
 	help
 fi
