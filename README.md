@@ -44,7 +44,7 @@ This has been tested with Microsoft
 (AKS).
 
 Your home computer is probably NAT'ed if you use IPv4, so you must
-find you "real" address to set the remote address for the tunnel in
+find your "real" address to set the remote address for the tunnel in
 the POD.
 
 ```
@@ -193,6 +193,12 @@ ping fd00:3030::1
 ```
 
 
+## MTU
+
+<img src="vxlan-mtu.svg" width="80%">
+
+
+
 ## Build the image
 
 ```
@@ -201,7 +207,3 @@ tag=your-repo.experimental.com/service-tunnel:latest
 docker build -t $tag .
 docker push $tag
 ```
-
-
-
-
