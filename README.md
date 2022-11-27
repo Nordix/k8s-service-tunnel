@@ -15,7 +15,43 @@ carry both IPv4 and IPv6 packets, so even if the connectivity to the
 cluster is IPv4-only (your UDP service is IPv4 single-stack) you can
 still test IPv6 over the tunnel.
 
-An image and a [script](image/service-tunnel.sh) is provided for easy testing.
+The image can be used as an initContainer:
+```yaml
+      initContainers:
+      - name: service-tunnel
+        image: registry.nordix.org/cloud-native/service-tunnel:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+        env:
+        - name: TUNNEL_PEER
+          value: "<address of remote endpoint>"
+        - name: TUNNEL_IPV4
+          value: "10.30.30.1/30"
+        - name: TUNNEL_IPV6
+          value: "fd00:3030::1/126"
+```
+
+The address of remote endpoint must be known and configured before
+deployment. The service must have `publishNotReadyAddresses: true`:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-tunnel
+spec:
+  selector:
+    app: service-tunnel
+  externalTrafficPolicy: Local
+  publishNotReadyAddresses: true
+  ports:
+  - port: 5533
+    name: vxlan
+    protocol: UDP
+  type: LoadBalancer
+```
+
 
 ## The catch
 
@@ -64,7 +100,7 @@ loadBalancerIP. This shall be used as remote address for the local
 tunnel setup.
 
 ```
-kubectl get svc vxlan-tunnel    # Get the external IP
+kubectl get svc service-tunnel    # Get the external IP
 remote=<external ip from above>
 sudo ./image/service-tunnel.sh vxlan --peer=$remote
 sudo ip link set up dev vxlan0       # Now UDP packets are sent to the service!
@@ -108,7 +144,7 @@ kubectl apply -f /tmp/service-tunnel.yaml
 Setup the tunnel interface on your computer using the script and
 assign addresses:
 ```
-kubectl get svc vxlan-tunnel    # Get the external IP
+kubectl get svc service-tunnel    # Get the external IP
 remote=<external ip from above>
 sudo ./image/service-tunnel.sh vxlan --peer=$remote
 sudo ip link set up dev vxlan0       # Now UDP packets are sent to the service!
@@ -139,11 +175,12 @@ A UDP sevice is defined.
 apiVersion: v1
 kind: Service
 metadata:
-  name: vxlan-tunnel
+  name: service-tunnel
 spec:
   selector:
     app: service-tunnel
   externalTrafficPolicy: Local
+  publishNotReadyAddresses: true
   ports:
   - port: 5533
     name: vxlan
@@ -155,13 +192,20 @@ The service has `externalTrafficPolicy: Local` so the tunnel in the
 POD can be setup with the correct (un-NAT'ed) remote address. A POD is
 started and waits for incoming UDP packets on port 5533.
 
+If the service-tunnel is created in an `initContainer`, which is
+assumed to be the normal setup, the service **must** have
+`publishNotReadyAddresses: true`. Otherwise the load-balancing will
+not be setup because the POD is not ready, and the POD will never be
+ready since it will not get any UDP packets
+([catch-22](https://en.wikipedia.org/wiki/Catch-22_(logic))).
+
 Now we go to the external machine, e.g. your home computer.  The
 load-balancer IP assigned to the service should be used as remote
 address.
 
 (use "sudo" when appropriate)
 ```
-kubectl get svc vxlan-tunnel    # Get the external IP
+kubectl get svc service-tunnel    # Get the external IP
 remote=<external ip from above>
 ip link add vxlan0 type vxlan id 333 dev wlp2s0 remote $remote dstport 5533 srcport 5533 5534
 ip link set up dev vxlan0       # Now UDP packets are sent to the service!

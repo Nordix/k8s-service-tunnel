@@ -79,14 +79,13 @@ cmd_env() {
 	envset=yes
 }
 ##   init
-##     Init a container. This is default if PID==1.
+##     Init a container. This is default if PID==1. Currently,
+##     just call "tunnel" (see below).
 cmd_init() {
 	log "Container init"
 	cmd_env
-	test -n "$__master" || __master=eth0
 	set | grep -E "^__($params).*=" | sort
 	cmd_tunnel
-	tail -f /dev/null
 }
 ##   hold
 ##     Hold execution
