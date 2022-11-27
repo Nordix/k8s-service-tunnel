@@ -52,6 +52,9 @@ spec:
   type: LoadBalancer
 ```
 
+The initContainer will block until a UDP packet has been received from
+the peer, *then* it will create the tunnel and return. So the POD will
+be stuck in `Init` until you have setup the tunnel on your host.
 
 ## The catch
 
