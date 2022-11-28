@@ -15,7 +15,6 @@ spec:
       initContainers:
       - name: service-tunnel
         image: registry.nordix.org/cloud-native/service-tunnel:latest
-        imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
         env:
@@ -28,7 +27,7 @@ spec:
       containers:
       - name: alpine
         image: docker.io/library/alpine:3.17.0
-        command: ["/bin/tail", "-f", "/dev/null"]
+        command: ["tail", "-f", "/dev/null"]
 ---
 apiVersion: v1
 kind: Service

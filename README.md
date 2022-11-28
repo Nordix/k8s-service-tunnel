@@ -109,6 +109,8 @@ sudo ./image/service-tunnel.sh vxlan --peer=$remote
 sudo ip link set up dev vxlan0       # Now UDP packets are sent to the service!
 sudo ip addr add 10.30.30.2/30 dev vxlan0
 sudo ip -6 addr add fd00:3030::2/126 dev vxlan0
+pod=$(kubectl get pods -l app=service-tunnel -o name | head -1)
+kubectl logs -c service-tunnel $pod
 ```
 
 Setup is ready. Test connectivity:
